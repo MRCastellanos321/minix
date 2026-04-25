@@ -12,18 +12,27 @@ void abrirRuta (char *ruta)
 {
 DIR *directorioabierto = opendir(ruta)
 
-variablenombre = readdir(directorioabierto)-> d.nombre
-
-/*comprobar si . o .. por carpetas de sistema*/
-
+struct dirent *actual
+actual = readdir(directorioabierto)-> d_nombre
+while (actual =! null)
+{
+if (strcmp(nombre, "..") == 0 || strcmp(nombre, ".") == 0) 
+{continue}
 printf(nombre)
+/*NO, me hace fallta ruta completa y nombre/*
 /*
 parte recursiva si es carpeta
 */
+S_ISDIR()
+abrirRuta()
 closedir(directorioabierto)
 }
 
 int main(int argc, char **argp)
 {
-  abrirRuta(/*argumento*/)
+char *primeraRuta
+ primeraRuta = argv[1]
+  abrirRuta(primeraRuta)
+  
+  return 0
 }
