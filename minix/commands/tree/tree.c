@@ -10,17 +10,18 @@
 
 void abrirRuta (char *ruta)
 {
-DIR *directorioabierto = opendir(ruta)
+DIR *directorioabierto = opendir(ruta);
 
-struct dirent *nombreActual
-nombreActual = readdir(directorioabierto)-> d_nombre
-while (nombreActual =! null)
+struct dirent *nombreActual;
+while ((nombreActual = readdir(directorioabierto))=! null)
 {
-if (strcmp(nombreActual, "..") == 0 || strcmp(nombreActual, ".") == 0) 
-{continue}
+char *nombre = nombreActual-> d_nombre;
+if (strcmp(nombre, "..") == 0 || strcmp(nombre, ".") == 0) 
+{continue;
+}
 
 char rutaCompleta[tamano   ];
-snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombreActual);
+snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombre);
 
 if (S_ISDIR(rutaCompleta.st_mode)) 
 {
