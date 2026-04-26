@@ -12,27 +12,37 @@ void abrirRuta (char *ruta)
 {
 DIR *directorioabierto = opendir(ruta)
 
-struct dirent *actual
-actual = readdir(directorioabierto)-> d_nombre
-while (actual =! null)
+struct dirent *nombreActual
+nombreActual = readdir(directorioabierto)-> d_nombre
+while (nombreActual =! null)
 {
-if (strcmp(nombre, "..") == 0 || strcmp(nombre, ".") == 0) 
+if (strcmp(nombreActual, "..") == 0 || strcmp(nombreActual, ".") == 0) 
 {continue}
-printf(nombre)
-/*NO, me hace fallta ruta completa y nombre/*
-/*
-parte recursiva si es carpeta
-*/
-S_ISDIR()
-abrirRuta()
+
+char rutaCompleta[tamano   ];
+snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombreActual);
+
+if (S_ISDIR(rutaCompleta.st_mode)) 
+{
+    printf(nombre);
+    abrirRuta(rutaCompleta);
+} 
+else 
+{
+ printf(nombre);
+}
+
+}
 closedir(directorioabierto)
 }
 
 int main(int argc, char **argp)
 {
-char *primeraRuta
- primeraRuta = argv[1]
-  abrirRuta(primeraRuta)
-  
-  return 0
+char *primeraRuta;
+if(argc > 1){
+ primeraRuta = argv[1]; 
+ }
+ printf(primeraRuta);
+  abrirRuta(primeraRuta);
+  return 0;
 }
