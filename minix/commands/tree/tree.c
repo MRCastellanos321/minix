@@ -11,27 +11,32 @@
 void abrirRuta (char *ruta)
 {
 DIR *directorioabierto = opendir(ruta);
-
+if (directorioabierto == NULL)
+{
+  printf(Error)
+  return;
+}
 struct dirent *nombreActual;
-while ((nombreActual = readdir(directorioabierto))=! null)
+while ((nombreActual = readdir(directorioabierto))=! NULL)
 {
 char *nombre = nombreActual-> d_nombre;
 if (strcmp(nombre, "..") == 0 || strcmp(nombre, ".") == 0) 
 {continue;
 }
 
-char rutaCompleta[tamano   ];
+char rutaCompleta[1024];
 snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombre);
 
-if (S_ISDIR(rutaCompleta.st_mode)) 
-{
+ DIR *prueba = opendir(rutaCompleta);
+  if (prueba != NULL) 
+  { closedir(prueba);
     printf(nombre);
-    abrirRuta(rutaCompleta);
-} 
-else 
-{
- printf(nombre);
-}
+  abrirRuta(rutaCompleta);
+  } 
+  else 
+  {
+   printf(nombre);
+  } 
 
 }
 closedir(directorioabierto)
@@ -39,7 +44,7 @@ closedir(directorioabierto)
 
 int main(int argc, char **argp)
 {
-char *primeraRuta;
+char *primeraRuta = ".";
 if(argc > 1){
  primeraRuta = argv[1]; 
  }
