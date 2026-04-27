@@ -1,3 +1,2 @@
-PROG=	tree
-
-.include <bsd.prog.mk>
+tree: tree.c
+	cc -o tree tree.c
