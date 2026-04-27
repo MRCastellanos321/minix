@@ -8,7 +8,7 @@
 #include <dirent.h>
 #include <errno.h>
 
-void abrirRuta (char *ruta)
+void abrirRuta (char *ruta, int nivel)
 {
 DIR *directorioabierto = opendir(ruta);
 if (directorioabierto == NULL)
@@ -20,10 +20,14 @@ struct dirent *nombreActual;
 while ((nombreActual = readdir(directorioabierto)) != NULL)
 {
 char *nombre = nombreActual->d_name;
-if (strcmp(nombre, "..") == 0 || strcmp(nombre, ".") == 0) 
-{continue;
+if (nombre[0] == '.')
+{
+continue;
 }
-
+for (int i = 0; i < nivel; i++) 
+{
+   printf("   ");
+}
 char rutaCompleta[1024];
 snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombre);
 
@@ -31,7 +35,7 @@ snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombre);
   if (prueba != NULL) 
   { closedir(prueba);
     printf("%s\n",nombre);
-  abrirRuta(rutaCompleta);
+    abrirRuta(rutaCompleta, nivel +1);
   } 
   else 
   {
@@ -49,6 +53,6 @@ if(argc > 1){
  primeraRuta = argv[1]; 
  }
  printf("%s\n",primeraRuta);
-  abrirRuta(primeraRuta);
-  return 0;
+ abrirRuta(primeraRuta, 0);
+ return 0;
 }
