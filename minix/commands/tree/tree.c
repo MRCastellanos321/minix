@@ -13,7 +13,7 @@ void abrirRuta (char *ruta)
 DIR *directorioabierto = opendir(ruta);
 if (directorioabierto == NULL)
 {
-  printf("Error")
+  printf("Error");
   return;
 }
 struct dirent *nombreActual;
