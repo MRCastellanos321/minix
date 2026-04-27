@@ -13,13 +13,13 @@ void abrirRuta (char *ruta)
 DIR *directorioabierto = opendir(ruta);
 if (directorioabierto == NULL)
 {
-  printf(Error)
+  printf("Error")
   return;
 }
 struct dirent *nombreActual;
-while ((nombreActual = readdir(directorioabierto))=! NULL)
+while ((nombreActual = readdir(directorioabierto)) != NULL)
 {
-char *nombre = nombreActual-> d_nombre;
+char *nombre = nombreActual->d_name;
 if (strcmp(nombre, "..") == 0 || strcmp(nombre, ".") == 0) 
 {continue;
 }
@@ -30,25 +30,25 @@ snprintf(rutaCompleta, sizeof(rutaCompleta), "%s/%s", ruta, nombre);
  DIR *prueba = opendir(rutaCompleta);
   if (prueba != NULL) 
   { closedir(prueba);
-    printf(nombre);
+    printf("%s\n",nombre);
   abrirRuta(rutaCompleta);
   } 
   else 
   {
-   printf(nombre);
+   printf("%s\n",nombre);
   } 
 
 }
-closedir(directorioabierto)
+closedir(directorioabierto);
 }
 
-int main(int argc, char **argp)
+int main(int argc, char **argv)
 {
 char *primeraRuta = ".";
 if(argc > 1){
  primeraRuta = argv[1]; 
  }
- printf(primeraRuta);
+ printf("%s\n",primeraRuta);
   abrirRuta(primeraRuta);
   return 0;
 }
