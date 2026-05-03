@@ -99,11 +99,11 @@ int do_noquantum(message *m_ptr)
 	rmp->quantum_count++;
         if (rmp->quantum_count >= 3) 
         {
-	    if (rmp->priority > MAX_USER_Q) 
-            {
-              rmp->priority--;
-            }
-            rmp -> quantum_count = 0;
+	   if (rmp->priority < MIN_USER_Q) 
+                {
+                  rmp->priority++;
+                }
+               rmp->quantum_count = 0;
 	}
 	if (rmp->priority < MIN_USER_Q) {
 		rmp->priority += 1; /* lower priority */
