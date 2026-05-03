@@ -96,6 +96,15 @@ int do_noquantum(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
+	rmp->quantum_count++;
+        if (rmp->quantum_count >= 3) 
+        {
+	    if (rmp->priority < rmp->max_priority + 6) 
+	    {
+	      rmp->priority++;
+	    }
+	      rmp->quantum_count = 0;
+	}
 	if (rmp->priority < MIN_USER_Q) {
 		rmp->priority += 1; /* lower priority */
 	}
@@ -130,7 +139,7 @@ int do_stop_scheduling(message *m_ptr)
 	cpu_proc[rmp->cpu]--;
 #endif
 	rmp->flags = 0; /*&= ~IN_USE;*/
-
+        rmp->quantum_count = 0;
 	return OK;
 }
 
@@ -156,7 +165,7 @@ int do_start_scheduling(message *m_ptr)
 		return rv;
 	}
 	rmp = &schedproc[proc_nr_n];
-
+       
 	/* Populate process slot */
 	rmp->endpoint     = m_ptr->m_lsys_sched_scheduling_start.endpoint;
 	rmp->parent       = m_ptr->m_lsys_sched_scheduling_start.parent;
@@ -244,7 +253,8 @@ int do_start_scheduling(message *m_ptr)
 	 */
 
 	m_ptr->m_sched_lsys_scheduling_start.scheduler = SCHED_PROC_NR;
-
+        rmp->quantum_count = 0;
+        rmp->ventana_actual = 0;
 	return OK;
 }
 
@@ -355,13 +365,15 @@ void balance_queues(void)
 	struct schedproc *rmp;
 	int r, proc_nr;
 
-	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
+	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) 
+	{
 		if (rmp->flags & IN_USE) {
-			if (rmp->priority > rmp->max_priority) {
+			if (rmp->quantum_count == 0 && rmp->priority > rmp->max_priority) {
 				rmp->priority -= 1; /* increase priority */
 				schedule_process_local(rmp);
 			}
 		}
+		rmp->quantum_count = 0;
 	}
 
 	if ((r = sys_setalarm(balance_timeout, 0)) != OK)
