@@ -97,6 +97,7 @@ int do_noquantum(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	rmp->quantum_count++;
+	printf("SCHED: proc %d quantum_count=%d priority=%d\n", proc_nr_n, rmp->quantum_count, rmp->priority);
         if (rmp->quantum_count >= 3) 
         {
 	   if (rmp->priority < MIN_USER_Q) 
