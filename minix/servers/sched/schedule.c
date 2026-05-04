@@ -255,7 +255,6 @@ int do_start_scheduling(message *m_ptr)
 
 	m_ptr->m_sched_lsys_scheduling_start.scheduler = SCHED_PROC_NR;
         rmp->quantum_count = 0;
-        rmp->ventana_actual = 0;
 	return OK;
 }
 
