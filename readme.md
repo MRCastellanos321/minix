@@ -386,7 +386,11 @@ Una vez hechas estas modificaciones recompilamos el sistema con make y podemos v
 
 # Validación experimental:
 
-Para ambos casos creamos un código en c en la carpeta pruebas, y nos servimos de los comandos cc -o cpuBound cpuBound.c y ./cpuBound para compilarlo. En una segunda terminal, el comando `top () `(con | grep cpuBound para encontrar la línea) nos permitió ver el progreso de la penalizacion para la primera prueba (el loop infinito) que agota quantums sin terminar nunca y por ello es penalizado hasta priority 15. La segunda prueba que usa `sleep()` cada cierto tiempo y por tanto no es categorizado como un proceso cpu bound o intensivo para la cpu, en consecuencia no recibe ninguna penalización a su prioridad. También anadimos un printf opcional en el codigo sched.c (en `do_noquantum()`) para ver mejor el aumento de la penalización en el tiempo sin necesidad de los comandos anteriores.
+Para ambos casos creamos un código en c en la carpeta pruebas, y nos servimos de los comandos cc -o cpuBound cpuBound.c y ./cpuBound para compilarlo. En una segunda terminal, el comando `top () `(con | grep cpuBound para encontrar la línea) nos permitió ver el progreso de la penalizacion para la primera prueba (el loop infinito) que agota quantums sin terminar nunca y por ello es penalizado hasta priority 15. La segunda prueba que usa `sleep()` cada cierto tiempo y por tanto no es categorizado como un proceso cpu bound o intensivo para la cpu, en consecuencia no recibe ninguna penalización a su prioridad. También anadimos un printf opcional en el codigo sched.c (en `do_noquantum()`) para ver mejor el aumento de la penalización en el tiempo sin necesidad de los comandos anteriores para el primer caso.
+
+Imágenes:
+![cpuBound](imagenes/cpuBound.png)
+
 
 # 3.Resultados globales y discusión
 
