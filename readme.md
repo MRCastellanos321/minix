@@ -175,7 +175,7 @@ Para encontrar el error localizamos el archivo pthread_compat.c
 minix# find /usr/src -name "pthread_compat.c" 2>/dev/null
 ```
 
-Revisamos el codigo siguiendo la ruta antes encontrada
+Revisamos el código siguiendo la ruta antes encontrada
 
 ```bash
 minix# nano /usr/src/minix/minix/lib/libmthread/pthread_compat.c
@@ -354,7 +354,7 @@ A continuación las imágenes resultados de llamar al comando tree para el direc
 
 Los diferentes procesos del sistema están en constante demanda de cpu para su funcionamiento, como pide la orientación, debemos modificar la forma en que la cpu se administra, implementando una penalización en los programas por su uso excesivo. Para ello accedimos a servers/sched en el código fuente. Aquí se encuentra sched.c, el que va a contener las funciones necesarias para el trabajo, `do_noquantum(), balance_queues()`, `do_start_scheduling()` y `do_stop_scheduling()`, y schedproc.h que también necesitaremos modificar. Vemos la existencia de la variable priority y max_priority para cada proceso. Funciona de esta forma: una mayor priority indica que la prioridad del sistema para este proceso es menor, o sea que al aumentar "priority" para un proceso en realidad estamos disminuyendo su prioridad para que no acapare cpu, usando los quantums como medida.
 
-### Diseno de política:
+### Diseño de política:
 
 Tras la conclusión de las modificaciones, cada N=3 quantums consumidos, un proceso es penalizado en priority++. Elegimos N=3 como sugerido en la orientación porque es buen balance entre una penalización demasiado agresiva y una que tarda demasiado en aplicarse. 
 
