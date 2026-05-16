@@ -51,7 +51,7 @@ char *nombre = nombreActual->d_name;
   } 
   else 
   {
-     printf("%s\n",nombre);
+     printf("%s (Error al abrir)\n", nombre);
   } 
 
 }
