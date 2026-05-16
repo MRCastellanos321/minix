@@ -243,9 +243,11 @@ Para confirmar el significado del valor 11, consultamos el archivo /usr/include/
 
 Para crear el comando tree, accedemos a la carpeta commands en el código fuente de minix y creamos un nuevo directorio para contener el mismo. Creamos un archivo donde programaremos el comando en c y dentro comienza la implementación. 
 
-### Diseno de algoritmo e Indentación:
+### Diseño de algoritmo e Indentación:
 
-La idea del programa es recorrer recursivamente a partir de la ruta dada (o "." en caso de que no haya parametro para el tree) cada carpeta y listarlas a ellas y sus archivos. El main que va a ser el punto de entrada nos permite ver la ruta decidida por el usuario a traves del argc y el argv. La función "abrirRuta" es la que se llamará a sí misma de forma recursiva. La recursividad permite que en cada ruta donde se analicen las carpetas y archivos, sea posible llamarla sobre el nuevo directorio de las carpetas, y llevar a través de la variable requerida como parámetro "nivel" un tamano de indentación para imprimir cada nombre de forma espaciada de acuerdo a su profundidad.
+La idea del programa es recorrer recursivamente a partir de la ruta dada (o "." en caso de que no haya parámetro para el tree) cada carpeta y listarlas a ellas y sus archivos. El main que va a ser el punto de entrada nos permite ver la ruta decidida por el usuario a traves del argc y el argv. La función "abrirRuta" es la que se llamará a sí misma de forma recursiva. La recursividad permite que en cada ruta donde se analicen las carpetas y archivos, sea posible llamarla sobre el nuevo directorio de las carpetas, y llevar a través de la variable requerida como parámetro "nivel" un tamano de indentación para imprimir cada nombre de forma espaciada de acuerdo a su profundidad.
+
+Elegimos recursividad en lugar de un enfoque iterativo con pila porque refleja de forma natural la estructura jerárquica del sistema de archivos, cada directorio puede contener subdirectorios, y la función simplemente se invoca a sí misma sobre cada uno. La profundidad típica de un sistema de archivos no supera el límite que pueda causar un stackoverflow. Además, la recursión simplifica el manejo de la indentación: el nivel se pasa como parámetro y se incrementa en cada llamada.
 
 ### Llamadas al sistema:
 
@@ -264,7 +266,7 @@ lstat(); recibe Ruta (texto) y puntero a struct stat, devuelve 0 al éxito y -1 
 
 ### Prevención de ciclos.
 
-Se tiene en cuenta como requerido en la orientación comprobar los enlaces simbólicos, los cuales pueden causar bucles infinitos. Un enlace simbólico es un puntero virtual a otro directorio que en casos especiales puede causar un ciclo interminable (si apunta a la carpeta que lo contiene o un ancestro, esta se va a abrir por la función y encontrarse de nuevo con el enlace simbolico, recorriendo la misma ruta una y otra vez, por ejemplo). Los detalles de su manejo se encuentran a continuación en código.
+Se tiene en cuenta como requerido en la orientación comprobar los enlaces simbólicos, los cuales pueden causar bucles infinitos. Un enlace simbólico es un puntero virtual a otro directorio que en casos especiales puede causar un ciclo interminable (si apunta a la carpeta que lo contiene o un ancestro, esta se va a abrir por la función y encontrarse de nuevo con el enlace simbolico, recorriendo la misma ruta una y otra vez, por ejemplo). Los detalles de su manejo se encuentran a continuación en código donde vamos a ver el uso de la macro `S_ISLNK(rutacomprobacion.st_mode)` que va a evaluar como true en caso de que sea un enlace simbolico y nos va a permitir evitarlos.
 
 ### Código:
 
@@ -340,7 +342,7 @@ char rutaCompleta[1024];
 El árbol también requiere de un archivo Makefile, el que usamos para compilar el sistema con el nuevo comando y ponerlo en funcionamiento.
 
 
-#Ejemplos de ejecución
+### Ejemplos de ejecución
 
 A continuación las imágenes resultados de llamar al comando tree para el directorio actual, para una ruta relativa y para una absoluta. En todas podemos ver que el "enlace_a_carpeta" (simbólico) no fue seguido hacia la carpeta "EnlaceApuntaAqui", y que los niveles fueron impresos con indentación.
 
@@ -348,56 +350,116 @@ A continuación las imágenes resultados de llamar al comando tree para el direc
 ![tree(rutaRelativa)](imagenes/tree(rutaRelativa).png)
 ![tree(rutaAbsoluta)](imagenes/tree(rutaAbsoluta).png)
 
+### Comparación
+
+Comparamos con el comando tree de Linux. Este tiene una salida similar, muestra la estructura de directorios con indentación, diferencia archivos y carpetas, y no sigue enlaces simbólicos por defecto. Nuestra implementación cumple con la indentación y el evitar los enlaces. No es una versión simplificada sin opciones de formato visual como colores, pero sigue siendo funcional y cumple con lo solicitado en la orientación del proyecto.
+
 ## 2.5 Penalización por uso intensivo de CPU
+
+#### Análisis teórico del algoritmo e introducción
+
+Los diferentes procesos del sistema están en constante demanda de CPU, a menudo compitiendo por la misma, y es tarea del SO seguir una estrategia para la distribución óptima de ella para su mejor funcionamiento.
+
+La planificación de procesos es el mecanismo del SO que decide qué proceso usa la CPU en cada momento y durante cuánto tiempo En un sistema multiprogramado hay varios procesos en memoria listos para ejecutarse, pero CPU limitada. Sin planificación, no habría orden: un proceso podría acaparar la CPU indefinidamente mientras otros esperan eternamente. La planificación crea la ilusión de que todos los procesos avanzan simultáneamente, aunque en realidad se turnan.
+
+Minix 3.0 sin modificar sigue la estrategia de Round Robin: Cada proceso recibe un quantum fijo (USER_QUANTUM = 200ms como vemos en los archivos del código fuente),y cuando este se agota, se llama a do_noquantum() (función del scheduler.c) y el proceso pasa al final de la cola. Es decir, funciona con los procesos en una sola cola circular, reciben el mismo quantum de tiempo, y rotan en orden. La idea de esta estrategia es cambiar de proceso al que se le permite ejecutarse cada cierto intervalo de tiempo, por lo que logra un buen tiempo de respuesta, ya que ninguno de ellos espera demasiado para empezar a ejecutarse. Sin embargo, esta estrategia trata igual a todos los procesos, tiene mal tiempo de retorno puesto que un proceso corto se sigue rotando con otros más largos, y permite que ciertos procesos acaparen cpu.
+
+La modificación implementada por nosotras para su mejoramiento consiste en una versión simplificada de MLFQ(Multi-level Feedback Queue) visto en conferencia, y que tiene en cuenta los problemas del Round Robin. Esta estrategia consiste en:
+
+Ajusta prioridades según el comportamiento.
+
+Procesos CPU-Bound : reciben menor prioridad.
+
+Procesos interactivos o bloqueantes: reciben mayor prioridad.
+
+Incluye "priority boost" para evitar inanición (la inacinación es cuando un proceso espera eternamente por CPU y no logra ejecutarse)
 
 ### Análisis previo:
 
-Los diferentes procesos del sistema están en constante demanda de cpu para su funcionamiento, como pide la orientación, debemos modificar la forma en que la cpu se administra, implementando una penalización en los programas por su uso excesivo. Para ello accedimos a servers/sched en el código fuente. Aquí se encuentra sched.c, el que va a contener las funciones necesarias para el trabajo, `do_noquantum(), balance_queues()`, `do_start_scheduling()` y `do_stop_scheduling()`, y schedproc.h que también necesitaremos modificar. Vemos la existencia de la variable priority y max_priority para cada proceso. Funciona de esta forma: una mayor priority indica que la prioridad del sistema para este proceso es menor, o sea que al aumentar "priority" para un proceso en realidad estamos disminuyendo su prioridad para que no acapare cpu, usando los quantums como medida.
+Como pide la orientación, debemos modificar la forma en que la cpu se administra, implementando una penalización en los programas por su uso excesivo. Analizamos los archivos con los que vamos a trabajar. Para ello accedimos a minix/servers/sched en el código fuente. Aquí se encuentra sched.c, el que va a contener las funciones necesarias para el trabajo, `do_noquantum(), balance_queues()`, `do_start_scheduling()` y `do_stop_scheduling()`, y schedproc.h que también necesitaremos modificar. Vemos la existencia de la variable priority y max_priority para cada proceso. Funciona de esta forma: una mayor priority indica que la prioridad del sistema para este proceso es menor, o sea que al aumentar "priority" para un proceso en realidad estamos disminuyendo su prioridad para que no acapare CPU, usando los quantums como medida.
+
+Vamos a explicar el funcionamiento de las principales funciones a modificar y que originalmente están implementando el Round Robin:
+
+`do_noquantum()`es la función que es llamada cuando un proceso agotó su quantum. Como explicamos antes, cada proceso recibe un quantum, que es un tiempo de cpu máximo otorgado por el sistema. Cuando el timer del kernel detecta que este llegó a cero, envía un mensaje al scheduler, el cual entonces llama a esta función.
+
+La función `balance_queues()`por otra parte se va a encargar de balancear. Anteriormente, cada 5 segundos recorría todos los procesos del sistema y si su prioridad era peor que max_priority, la subía en un nivel.
 
 ### Diseño de política:
 
-Tras la conclusión de las modificaciones, cada N=3 quantums consumidos, un proceso es penalizado en priority++. Elegimos N=3 como sugerido en la orientación porque es buen balance entre una penalización demasiado agresiva y una que tarda demasiado en aplicarse. 
+Como exlicamos anteriormente, debemos modificar el código para implementar MLFQ. Especificamos a continuación las decisiones de cómo pensamos hacer funcionar las penalizaciones y el balance:
+
+Tras la conclusión de las modificaciones,las prioridades se ajustan según el comportamiento, penalizando procesos que consumen mucha cpu. Llevamos la cuenta de la siguiente forma: cada N=3 quantums consumidos, un proceso es penalizado en priority++. Elegimos N=3 como sugerido en la orientación porque es buen balance entre una penalización demasiado agresiva y una que tarda demasiado en aplicarse. Un proceso interactivo o bloqueante no será penalizado. 
 
 Observemos ahora la línea existente en sched.c : `#define BALANCE_TIMEOUT 5 /* how often to balance queues in seconds */.` y en int_scheduling: `balance_timeout = BALANCE_TIMEOUT * sys_hz(); sys_setalarm(balance_timeout, 0);` De aquí sabemos que el `balance_queues()` se llama cada 5s.
 
-Por eso implementamos de forma tal que las ventanas de intervalo aprovechan la estructura ya existente del llamado a `balance_queues()` para tener los cinco segundos cada los cuales esta función es llamada como su tamano, así no es necesario definir nuevos contadores y se modifica el código en lo mínimo. En esta parte si al concluir ese tiempo (la función es llamada) el proceso tiene quantum_count = 0 y no ha alcanzado su max_priority, entonces recupera su prioridad (priority--), puesto que no se ha estado comportando como un proceso abarcador de cpu, e independientemente, quantum_count vuelve a ser 0.
+Por eso implementamos nuestra estrategia de forma tal que las ventanas de intervalo aprovechan la estructura ya existente del llamado a `balance_queues()` para tener los cinco segundos cada los cuales esta función es llamada como su tamaño, así no es necesario definir nuevos contadores y se modifica el código en lo mínimo. Esta elección permite aprovechar las herramientas que ya fueron dadas por la estrategia base. En esta misma función si al concluir ese tiempo (la función es llamada) el proceso tiene quantum_count = 0 y no ha alcanzado su max_priority, entonces recupera su prioridad (priority--), puesto que no se ha estado comportando como un proceso abarcador de cpu, e independientemente, quantum_count vuelve a ser 0. De esta forma aseguramos que un proceso interactivo o uno cpu-Bound que cambió su comportamiento recupere su lugar en la cola, y evitamos inacinación.
 
 ### Cambios Realizados:
 
-Iniciamos modificando el archivo schedproc.h para añadir la variable quantum_count, que utilizaremos para la condición < N quantums (en este caso elegimos 3 como el ejemplo) Ahora quantum_count es accesible desde rmp en el código.
+Iniciamos modificando el archivo schedproc.h para añadir la variable quantum_count, que utilizaremos para la condición < N quantums (en este caso elegimos 3 como explicado anteriormente) Ahora quantum_count es accesible desde rmp en el código.
 
-Vamos al archivo sched.c donde están las funciones que vamos a modificar. Primeramente, el objetivo es aplicar una penalización gradual a los programas que alcancen los 3 quantums y superior, para ello cuanto rmp->quantum_count es mayor que 3 aumentamos en +1 su "priority". Comprobamos también que el aumento no supera el MIN_USER_Q definido por el sistema y reseteamos la cuenta de quantums a 0 una vez concluido esto. Queda modificado el código de `do_noquatum()`con este segmento anadido:
+Vamos al archivo sched.c donde están las funciones que vamos a modificar. Primeramente, el objetivo es aplicar una penalización gradual a los programas que alcancen los 3 quantums y superior, para ello cuanto rmp->quantum_count es mayor que 3 aumentamos en +1 su "priority". Comprobamos también que el aumento no supera el MIN_USER_Q definido por el sistema y reseteamos la cuenta de quantums a 0 una vez concluido esto. Queda modificado el código de `do_noquantum()`con este segmento añadido:
 
 ```bash
-if (rmp->quantum_count >= 3) 
+if (rmp->quantum_count >= 3)     //Si alcanzó el umbral de penalización 
     {
-	   if (rmp->priority < MIN_USER_Q) 
+	   if (rmp->priority < MIN_USER_Q)    //y no supera la prioridad mínima
                 {
-                  rmp->priority++;
+                  rmp->priority++;        //penalizar
                 }
-               rmp->quantum_count = 0;
+               rmp->quantum_count = 0;  //reiniciar contador tras penalizar
 	}
 ```
-`do_noquatum()`es la función que es llamada cuando un proceso agotó su quantum. Cada proceso recibe un quantum, que es un tiempo de cpu máximo otorgado por el sistema. Cuando el timer del kernel detecta que este llegó a cero, envía un mensaje al scheduler, el cual entonces llama a esta función.
 
-La función `balance_queues()`por otra parte se va a encargar de balancear. Anteriormente, cada 5 segundos recorría todos los procesos del sistema y si su prioridad era peor que max_priority, la subía en un nivel. Tras la modificación, si un proceso tiene su cuenta de quantum en 0 (es decir que no se comportó como un proceso intensivo durante esa ventana) y su priority es mayor(peor) que max_priority entonces disminuimos priority (o sea aumentamos su prioridad), además al concluir la ventana temporal se reinicia la cuenta de quantums a cero, de esa forma usamos el mecanismo ya existente de temporización. Queda este segmento modificado:
+Tras la modificación, si un proceso tiene su cuenta de quantum en 0 (es decir que no se comportó como un proceso intensivo durante esa ventana) y su priority es mayor(peor) que max_priority entonces disminuimos priority (o sea aumentamos su prioridad), además al concluir la ventana temporal se reinicia la cuenta de quantums a cero, de esa forma usamos el mecanismo ya existente de temporización. Queda este segmento modificado:
 
 ```bash
-if (rmp->flags & IN_USE) {
-			if (rmp->quantum_count == 0 && rmp->priority > rmp->max_priority) {
-				rmp->priority -= 1;
-				schedule_process_local(rmp);
+if (rmp->flags & IN_USE) {               //para procesos activos
+			if (rmp->quantum_count == 0 &&        //Si no fue cpu bound en la ventana de tiempo 
+      rmp->priority > rmp->max_priority)    //y su prioridad es peor que la máxima
+      { 
+				rmp->priority -= 1;              //mejorar su prioridad
+				schedule_process_local(rmp); 
 			}
 		}
-		rmp->quantum_count = 0;
+		rmp->quantum_count = 0;                 //fin de ventana, reiniciar
 ```
-Por último, `do_stop_scheduling` resetea la cuenta de los quantums a cero, y `do_start_scheduling()` la inicia ahí.
+
+Por último, `do_stop_scheduling`(Bloqueo por E/S o semáforo) resetea la cuenta de los quantums a cero, y `do_start_scheduling()` la inicia ahí.
 
 Una vez hechas estas modificaciones recompilamos el sistema con make y podemos verlo en funcionamiento con las pruebas descritas por la orientación.
 
 ### Validación experimental:
 
-Para ambos casos creamos un código en c en la carpeta pruebas, y nos servimos de los comandos cc -o cpuBound cpuBound.c y ./cpuBound, el primero lo compila usando cc y el segundo lo ejecuta. En una segunda terminal, el comando `top () `(con | grep cpuBound para encontrar la línea) nos permitió ver el progreso de la penalización para la primera prueba (el loop infinito) que agota quantums sin terminar nunca y por ello es penalizado hasta priority 15. La segunda prueba, el proceso bloqueante no recibe ninguna penalización a su prioridad, porque usa `sleep()` cada cierto tiempo y por tanto no es categorizado como un proceso cpu bound o intensivo para la cpu, ya que la está cediendo cada vez que se bloquea. También anadimos un printf opcional en el codigo sched.c (en `do_noquantum()`) para ver mejor el aumento de la penalización en el tiempo sin necesidad de los comandos anteriores para el primer caso y mostrar la imagen a continuación.
+Para ambos casos creamos un código en c en la carpeta pruebas. El objetivo es comprobar que el MLFQ se esté comportando correctamente para el caso de un proceso CPU-Bound y para un proceso interactivo. 
+
+Para evaluar el primero, elegimos como programa un ciclo infinito:
+
+```bash
+int main() 
+{
+    while(1) 
+    {
+    }
+    return 0;
+}
+```
+Luego, nos servimos de los comandos cc -o cpuBound cpuBound.c y ./cpuBound, el primero compila el programa usando cc y el segundo lo ejecuta. En una segunda terminal, el comando `top () `(con | grep cpuBound para encontrar la línea) nos permitió ver el progreso de la penalización, puesto que el loop infinito agota quantums sin terminar nunca y por ello es penalizado hasta priority 15. También añadimos un printf temporal en el codigo sched.c (en `do_noquantum()` porque cada vez que es llamada es cuando ocurre la modificación que queremos ver) para observar mejor el aumento de la penalización en el tiempo sin necesidad de los comandos anteriores y obtener la imagen a continuación. Mostrado en la fig. "cpuBound"
+
+Para evaluar el segundo caso, proceso interactivo o bloqueante:
+
+```bash
+int main(void)
+{
+    int i;
+    for (i = 0; i < 10; i++) 
+    {
+        sleep(1);
+    }
+    return 0;
+}
+```
+Ejecutamos la segunda prueba de la misma forma. Vemos en la terminal que el proceso bloqueante no recibe ninguna penalización a su prioridad, porque usa `sleep()` cada cierto tiempo para bloquearse y por tanto no es categorizado como un proceso CPU-Bound o intensivo para la cpu, ya que la está cediendo cada vez que se bloquea. Observemos la terminal en la imagen fig. "interactivo"
 
 Imágenes(capturas de terminal en minix que muestran la evolución de la prioridad):
 ![cpuBound](imagenes/cpuBound.png)
@@ -405,7 +467,7 @@ Imágenes(capturas de terminal en minix que muestran la evolución de la priorid
 
 # 3.Resultados globales y discusión
 
-Concluido el proyecto todas las componentes y cambios implementados funcionan satisfactoriamente, por lo que se ha cumplido la meta, y no encontramos diferencias al resultado esperado. Se superaron las dificultades técnicas iniciales de espacio y conectividad para preparar el ambiente de trabajo. Aprendimos más acerca de la estructuración interna de un sistema operativo, la programación de comandos de terminal a bajo nivel, el manejo y distribución de cpu para los programas y lo que hacen algunas de las funciones esenciales para este diseno, nos familiarizamos con el uso de comandos de terminal nuevos y conocidos a lo largo de la realización del proyecto, así como con varios aspectos del lenguaje c.
+Concluido el proyecto todas las componentes y cambios implementados funcionan satisfactoriamente, por lo que se ha cumplido la meta, y no encontramos diferencias al resultado esperado. Se superaron las dificultades técnicas iniciales de espacio y conectividad para preparar el ambiente de trabajo. Aprendimos más acerca de la estructuración interna de un sistema operativo, la programación de comandos de terminal a bajo nivel, el manejo y distribución de cpu para los programas y lo que hacen algunas de las funciones esenciales para este diseño, nos familiarizamos con el uso de comandos de terminal nuevos y conocidos a lo largo de la realización del proyecto, así como con varios aspectos del lenguaje c.
 
 # 4. Conclusiones
 
@@ -451,7 +513,7 @@ Para comprobar errores o la falta de ellos de sintaxis en c (ejemplo: falto un ;
 
 Asistencia con la interfaz de virtualbox (ejemplo: como crear un snapshot de tu estado actual para salvagardarlo).
 
-Para entender las funciones originales de do_no_quantum y balance_queues y cuál era el archivo donde definía los campos de variable para rmp para poder definir quantum_count.
+Para entender el código de las funciones originales de do_no_quantum y balance_queues y cuál era el archivo donde definía los campos de variable para rmp para poder definir quantum_count.
 
 Ayuda con la redacción de las referencias para este informe, siguiendo el formato APA, así como en la revisión de estilo y corrección de errores tipográficos en el resto del informe.
 
