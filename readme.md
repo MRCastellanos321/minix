@@ -288,7 +288,7 @@ También debemos  manejar errores (no hay permisos para el archivo, etc) Por ell
 DIR *directorioabierto = opendir(ruta);
  if (directorioabierto == NULL)
   {
-  printf("Error");
+  printf("Error\n");
   return;
   }
   struct dirent *nombreActual;
@@ -344,11 +344,12 @@ El árbol también requiere de un archivo Makefile, el que usamos para compilar 
 
 ### Ejemplos de ejecución
 
-A continuación las imágenes resultados de llamar al comando tree para el directorio actual, para una ruta relativa y para una absoluta. En todas podemos ver que el "enlace_a_carpeta" (simbólico) no fue seguido hacia la carpeta "EnlaceApuntaAqui", y que los niveles fueron impresos con indentación.
+A continuación las imágenes resultados de llamar al comando tree para el directorio actual (fig ), para una ruta relativa (fig) y para una absoluta (fig), y una tercera para mostrar el manejo de error (fig). En las tres primeras podemos ver que el "enlace_a_carpeta" (simbólico) no fue seguido hacia la carpeta "EnlaceApuntaAqui", y que los niveles fueron impresos con indentación. La cuarta imagen (fig ) muestra como al hacer un login con un usuario distinto a la raíz e intentar elegir como ruta un directorio sin permisos (TestError en este caso) la pantalla imprime un error.
 
 ![tree](imagenes/tree(sinRuta).png)
 ![tree(rutaRelativa)](imagenes/tree(rutaRelativa).png)
 ![tree(rutaAbsoluta)](imagenes/tree(rutaAbsoluta).png)
+![tree(Error)](imagenes/tree(Error).png)
 
 ### Comparación
 
