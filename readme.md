@@ -385,6 +385,10 @@ Vamos a explicar el funcionamiento de las principales funciones a modificar y qu
 
 La función `balance_queues()`por otra parte se va a encargar de balancear. Anteriormente, cada 5 segundos recorría todos los procesos del sistema y si su prioridad era peor que max_priority, la subía en un nivel.
 
+`do_start_scheduling()` se llama cuando un nuevo proceso está listo para ser planificado. Originalmente asigna prioridad, quantum y CPU al proceso. 
+
+`do_stop_scheduling()` se llama cuando un proceso se bloquea voluntariamente (por ejemplo, al esperar E/S o un semáforo). Originalmente esta función libera el lugar de planificación del proceso.
+
 ### Diseño de política:
 
 Como exlicamos anteriormente, debemos modificar el código para implementar MLFQ. Especificamos a continuación las decisiones de cómo pensamos hacer funcionar las penalizaciones y el balance:
